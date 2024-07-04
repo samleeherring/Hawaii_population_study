@@ -11,18 +11,28 @@ source('code/initial_glimpse.R')
 ## =AVERAGE(AA10:AA44,AA50:AA75)
 ## =AVERAGE(AJ10:AJ44,AJ50:AJ75)
 
+early_sets <- '=SUM(B23, D23, F23, H23, J23, M23, O23, Q23, S23, U23, X23, AB23, 
+AD23, AF23, AI23, AK23, AM23, AO23, AQ23, AT23, AV23, AX23, AZ23, BB23, BE23, BG23, 
+BI23, BK23, BM23, BP23, BR23, BT23, BV23, BX23, CA23, CC23, CE23, CG23, CI23, CL23, 
+CN23, CP23, CR23, CT23, CW23, CY23, DA23, DC23, DE23, DH23, DJ23)'
+
 raw_data2 <- read_csv('data/HI_population_movement.csv')
 
 emigration_data <- raw_data2 %>%
   select_all() %>%
   rename(year = Hawaii,
-         resident_emigration = Estimate,
+         resident_emigration = Emigration,
          MOE = 'Margin of Error',
-         MOE_prcnt = 'MOE Percentage') %>%
+         MOE_prcnt = 'MOE Percentage',
+         immigration = Immigration) %>%
   mutate(resident_emigration = as.numeric(resident_emigration),
          MOE = as.numeric(MOE),
-         MOE_prcnt = as.numeric(MOE_prcnt)) 
+         MOE_prcnt = as.numeric(MOE_prcnt),
+         MOE_2 = as.numeric(MOE_2),
+         MOE_prcnt_2 = as.numeric(MOE_prcnt_2)) 
 
+
+## Plotting data to find patterns in population movement
 emigration_data %>%
   mutate(labels = factor(sprintf('%02d', year %% 100))) %>%
   group_by(year) %>%
@@ -59,3 +69,51 @@ emigration_data %>%
 
 ggsave('figures/resident_emigration.png', width = 6, height = 5, units = 'in')
 
+
+## Tracking both emigration & immigration data in Hawai'i to look for population trends
+emigration_data %>%
+  select(year, resident_emigration, immigration) %>%
+  pivot_longer(cols = 2:3, names_to = 'movement_type', values_to = 'amount') %>%
+  mutate(labels = factor(sprintf('%02d', year %% 100))) %>%
+  
+  ggplot(aes(x=year, y=amount, color=movement_type, label = labels)) +
+  geom_smooth(method = 'loess', span = 0.41, level = 0.9, show.legend = FALSE) +
+  #geom_label(size = 3.2, nudge_y = -3800) +
+  geom_path(linetype = 'dashed', show.legend = FALSE) +
+  geom_point(shape = 1, size = 2, stroke = 0.8) +
+  geom_point(size = 1.2, color = 'white') +
+  
+  scale_y_continuous(breaks = seq(20000,160000, 20000), limits = c(0,160000),
+                     expand = c(0,1000), labels = seq(20, 160, 20)) +
+  scale_x_continuous(expand = c(0.005, 0.005)) +
+  scale_color_manual(name = NULL,
+                     values = c('red', 'dodgerblue'),
+                     labels = c('Immigration', 'Emigration'),
+                     guide = guide_legend(override.aes = list(shape=15, size = 4))) +
+  
+  labs(
+    title = "Tracking Hawai'i resident migration trends (2004-2022)",
+    subtitle = "Extrapolated from emigration & domestic immigration data of residents who spent\nthe previous year living in HI. (missing data from 2007 & 2020)",
+    tag = "Data from US Census",
+    x = NULL,
+    y = 'Resident  migration (x1,000)'
+  ) +
+  
+  theme(
+    plot.title = element_textbox_simple(margin = margin(b=5)),
+    plot.subtitle = element_text(color = 'darkgrey', size = 10),
+    panel.background = element_rect(fill = '#f6f6f6'),
+    axis.line = element_line(),
+    plot.margin = margin(10,5,10,5),
+    panel.spacing = unit(0.3, 'in'),
+    legend.background = element_rect(fill = "white"),
+    legend.key = element_rect(fill = '#f6f6f6'),
+    legend.position = "inside",
+    legend.position.inside = c(0.2, 0.82),
+    legend.title = element_blank(),
+    plot.tag = element_text(size = 9, color = 'darkgrey'),
+    plot.tag.position = 'bottomright',
+    plot.tag.location = 'panel'
+  )
+
+ggsave('figures/resident_migration.png', width = 6, height = 5, units = 'in')
