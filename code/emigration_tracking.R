@@ -2,7 +2,10 @@
 ## US Census on Hawaiian population domestic migration
 
 source('code/initial_glimpse.R')
-
+library(showtext)
+library(ggtext)
+library(usmap)
+library(maps)
 ## Codes for google sheets work: 
 
 ## =SUM(Z10:Z22,Z24:Z44,Z50:Z75)
@@ -17,6 +20,8 @@ BI23, BK23, BM23, BP23, BR23, BT23, BV23, BX23, CA23, CC23, CE23, CG23, CI23, CL
 CN23, CP23, CR23, CT23, CW23, CY23, DA23, DC23, DE23, DH23, DJ23)'
 
 raw_data2 <- read_csv('data/HI_population_movement.csv')
+diaspora_data <- HI_diaspora
+
 
 emigration_data <- raw_data2 %>%
   select_all() %>%
@@ -126,3 +131,36 @@ emigration_data %>%
   )
 
 ggsave('figures/resident_migration.png', width = 6, height = 5, units = 'in')
+
+
+library(maps)
+map('usmap')
+map_data("state")
+# doesn't include AK & HI... which is kind of paramount to this whole thing
+
+library(usmap)
+us_map(regions='states')
+
+diaspora_data %>%
+  pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+  rename(state = `State:`) %>%
+  mutate(year = as.numeric(year)) %>%
+  arrange(-emigrants) %>%
+  drop_na() %>%
+  ggplot(aes(x=emigrants, y=state, fill=year)) +
+  geom_col() +
+  
+  scale
+  
+  labs(
+    title = 'TITLE',
+    subtitle = 'SUBTITLE',
+    caption = 'CAPTION',
+    tag = 'TAG',
+    y = NULL,
+    x = "People leaving Hawai'i"
+  )
+
+
+
+
