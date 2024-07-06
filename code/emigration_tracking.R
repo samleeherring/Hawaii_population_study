@@ -31,6 +31,10 @@ emigration_data <- raw_data2 %>%
          MOE_2 = as.numeric(MOE_2),
          MOE_prcnt_2 = as.numeric(MOE_prcnt_2)) 
 
+library(showtext)
+library(ggtext)
+font_add_google(family = 'patua-one', 'Patua One')
+showtext.auto()
 
 ## Plotting data to find patterns in population movement
 emigration_data %>%
@@ -93,17 +97,20 @@ emigration_data %>%
   
   labs(
     title = "Tracking Hawai'i resident migration trends (2004-2022)",
-    subtitle = "Extrapolated from emigration & domestic immigration data of residents who spent\nthe previous year living in HI. (missing data from 2007 & 2020)",
+    subtitle = "Extrapolated from emigration & domestic immigration data of residents who spent the previous year living in HI.",
     tag = "Data from US Census",
+    caption = "The term 'Resident' applies to anyone who has lived at least one year in said location. (missing data from 2007 & 2020)",
     x = NULL,
     y = 'Resident  migration (x1,000)'
   ) +
   
   theme(
-    plot.title = element_textbox_simple(margin = margin(b=5)),
-    plot.subtitle = element_text(color = 'darkgrey', size = 10),
+    plot.title = element_textbox_simple(family='patua-one', size = 40, margin = margin(b=5)),
+    plot.subtitle = element_textbox_simple(color = 'darkgrey', size = 25, margin = margin(b=3, t=3)),
     panel.background = element_rect(fill = '#f6f6f6'),
     axis.line = element_line(),
+    axis.title.y = element_text(size = 25),
+    axis.text = element_text(size = 22),
     plot.margin = margin(10,5,10,5),
     panel.spacing = unit(0.3, 'in'),
     legend.background = element_rect(fill = "white"),
@@ -111,9 +118,11 @@ emigration_data %>%
     legend.position = "inside",
     legend.position.inside = c(0.2, 0.82),
     legend.title = element_blank(),
-    plot.tag = element_text(size = 9, color = 'darkgrey'),
+    legend.text = element_text(size = 22),
+    plot.tag = element_text(size = 18, color = 'darkgrey'),
     plot.tag.position = 'bottomright',
-    plot.tag.location = 'panel'
+    plot.tag.location = 'panel',
+    plot.caption = element_text(color='darkgrey', hjust = 0, size = 22)
   )
 
 ggsave('figures/resident_migration.png', width = 6, height = 5, units = 'in')
