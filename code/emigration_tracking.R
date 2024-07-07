@@ -150,17 +150,17 @@ diaspora_data %>%
   ggplot(aes(x=emigrants, y=state, fill=year)) +
   geom_col() +
   
-  scale
   
   labs(
-    title = 'TITLE',
+    title = 'Finding the most frequent destinations for HI residents',
     subtitle = 'SUBTITLE',
-    caption = 'CAPTION',
-    tag = 'TAG',
+    #caption = 'CAPTION',
+    #tag = 'TAG',
     y = NULL,
     x = "People leaving Hawai'i"
   )
 
+ggsave('figures/HI_diaspora_destinations.png', width = 5, height = 6, units = 'in')
 
 
 
