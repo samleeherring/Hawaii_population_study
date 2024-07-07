@@ -141,26 +141,64 @@ map_data("state")
 library(usmap)
 us_map(regions='states')
 
-diaspora_data %>%
-  pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+#state_total <- 
+  diaspora_data %>%
+  mutate(total = select(., '2009':'2019') %>% rowSums(na.rm = TRUE)) %>%
   rename(state = `State:`) %>%
-  mutate(year = as.numeric(year)) %>%
-  arrange(-emigrants) %>%
+  # pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+  # mutate(year = as.numeric(year)) %>%
   drop_na() %>%
-  ggplot(aes(x=emigrants, y=state, fill=year)) +
-  geom_col() +
   
+  ggplot(aes(x=total, y=reorder(state, total), label = total)) +
+  geom_col(position = 'dodge', show.legend = FALSE, fill = 'skyblue') +
+  # geom_text(nudge_x = 5000) +
+  
+  scale_x_continuous(breaks = seq(0,135000, 15000), limits = c(0,140000),
+                     expand = c(0.1, NA)) +
+  scale_y_discrete(drop=TRUE) +
+  # scale_fill_manual(name=NULL,
+  #                   breaks=c("a", "b"),
+  #                   values=c("#F8F8F8", "#FFFFFF"),
+  #                   labels=c("a", "b")) +
   
   labs(
-    title = 'Finding the most frequent destinations for HI residents',
-    subtitle = 'SUBTITLE',
+    title = 'Finding the most frequent domestic destinations for HI residents',
+    subtitle = 'The decade of 2009-2019 saw the highest rates of emigration from the state',
     #caption = 'CAPTION',
     #tag = 'TAG',
     y = NULL,
     x = "People leaving Hawai'i"
+  ) +
+  
+  theme(
+    plot.title = element_text(family='patua-one', size = 35, margin = margin(b=2)),
+    plot.title.position = 'plot',
+    plot.subtitle = element_textbox_simple(color = 'darkgrey', size = 25,
+                                           margin = margin(b=5, t=3)),
+    axis.title = element_text(size = 25),
+    axis.text = element_text(size=20),
+    panel.background = element_rect(color = 'lightgrey'),
+    #panel.background = element_blank(),
+    #panel.grid = element_blank(),
+    plot.margin = margin(10,5,10,5),
+    panel.spacing = unit(0.3, 'in')
   )
 
 ggsave('figures/HI_diaspora_destinations.png', width = 5, height = 6, units = 'in')
 
 
+# strip_data <- diaspora_data %>%
+#   select(state, y_position) %>%
+#   mutate(xmin = 50, xmax=100,
+#          ymin = y_position - 0.5,
+#          ymax = y_position + 0.5,
+#          fill = c(rep(c("a", "b"), length.out=nrow(.)))) %>%
+#   pivot_longer(cols=c(xmin, xmax), values_to="x", names_to="xmin_xmax") %>%
+#   select(-xmin_xmax)
 
+## Formatting long data fro future plots
+diaspora_data %>%
+  rename(state = `State:`) %>%
+  pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+  mutate(year = as.numeric(year)) %>%
+  drop_na()
