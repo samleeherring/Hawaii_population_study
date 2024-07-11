@@ -6,6 +6,9 @@ library(showtext)
 library(ggtext)
 library(usmap)
 library(maps)
+library(dplyr)
+library(glue)
+library(janitor)
 ## Codes for google sheets work: 
 
 ## =SUM(Z10:Z22,Z24:Z44,Z50:Z75)
@@ -19,8 +22,12 @@ AD23, AF23, AI23, AK23, AM23, AO23, AQ23, AT23, AV23, AX23, AZ23, BB23, BE23, BG
 BI23, BK23, BM23, BP23, BR23, BT23, BV23, BX23, CA23, CC23, CE23, CG23, CI23, CL23, 
 CN23, CP23, CR23, CT23, CW23, CY23, DA23, DC23, DE23, DH23, DJ23)'
 
+
 raw_data2 <- read_csv('data/HI_population_movement.csv')
-diaspora_data <- HI_diaspora
+diaspora_data <- HI_diaspora %>%
+  rename(state = `State:`) %>%
+  left_join(., st_crosswalk, by = "state")
+  
 
 
 emigration_data <- raw_data2 %>%
@@ -141,12 +148,13 @@ map_data("state")
 library(usmap)
 us_map(regions='states')
 
+state_lookup <- tibble(abb = state.abb,
+                       name = state.name)
+
 #state_total <- 
-  diaspora_data %>%
+diaspora_data %>%
+  # inner_join(., state_lookup, by=c('state' = 'name')) %>% (old function)
   mutate(total = select(., '2009':'2019') %>% rowSums(na.rm = TRUE)) %>%
-  rename(state = `State:`) %>%
-  # pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
-  # mutate(year = as.numeric(year)) %>%
   drop_na() %>%
   
   ggplot(aes(x=total, y=reorder(state, total), label = total)) +
@@ -196,9 +204,157 @@ ggsave('figures/HI_diaspora_destinations.png', width = 5, height = 6, units = 'i
 #   pivot_longer(cols=c(xmin, xmax), values_to="x", names_to="xmin_xmax") %>%
 #   select(-xmin_xmax)
 
+## Putting all states into clearer data frame grouped by years with no Hawai'i
+destinations <- diaspora_data %>%
+  #clean_names() %>%
+  pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+  mutate(year = as.numeric(year)) %>%
+  drop_na() %>%
+  group_by(year) %>%
+  select(year, state, abb, emigrants) %>%
+  arrange(-emigrants, .by_group = TRUE)
+
+## Also making a df for overall numbers
+diaspora_data %>%
+  mutate(total=rowSums(.))
+
+
+## Looking closer at the top 10 destinations
+top_10_df <- diaspora_data %>%
+  #clean_names() %>%
+  pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+  mutate(year = as.numeric(year)) %>%
+  drop_na() %>%
+  group_by(year) %>%
+  select(year, state, abb, emigrants) %>%
+  arrange(-emigrants, .by_group = TRUE) %>%
+  slice_head(n=10)
+
+## Selecting the states which most frequently show up on the top 10
+overall_top <- top_10_df %>%
+  group_by(.drop=TRUE) %>%
+  count(state) %>%
+  slice_max(n, n=10)
+# and once again minus cali
+overall_no_cali <- no_cali %>%
+  group_by(.drop=TRUE) %>%
+  count(state) %>%
+  slice_max(n, n=10) %>%
+  head(n=10)
+
+## We've already seen that CA dominates the list every year, so maybe I take it out
+no_cali <- diaspora_data %>%
+  pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
+  select(abb, year, emigrants) %>%
+  pivot_wider(names_from = 'abb', values_from = 'emigrants') %>%
+  mutate(year = as.numeric(year)) %>%
+  select(-'CA') %>%
+  pivot_longer(cols = 2:51, names_to = 'abb', values_to = 'emigrants') %>%
+  drop_na() %>%
+  mutate(state = abbr2state(abb)) %>%
+  group_by(year) %>%
+  select(year, abb, state, emigrants) %>%
+  arrange(-emigrants, .by_group = TRUE) %>%
+  slice_head(n=10) 
+
+## data frame to show which state received the most emigrants from Hawai'i
+peak_state <- destinations %>%
+  top_n(n=1, emigrants) %>%
+  pull(state)
+
+## same thing but minus california
+peak_no_cali <- no_cali %>%
+  top_n(n=1, emigrants) %>%
+  pull(state)
+
+year_range <- destinations %>%
+  group_by(.drop = TRUE) %>%
+  summarise(early = min(year), late = max(year)) %>%
+  mutate(range = glue("{early} and {late}")) %>%
+  pull(range)
+
+diaspora_data$total <- as.numeric(apply(diaspora_data[,2:12], 1, sum))
+
+state_totals <- diaspora_data %>%
+  select(state, total) %>%
+  group_by(state) %>%
+  mutate(label = glue('{state}\n({total})')) 
+
+## Heat map of top 10 desinations
+top_10_df %>%
+  left_join(., overall_top, by = 'state') %>%
+  left_join(., state_totals, by = 'state') %>%
+  drop_na() %>%
+  ggplot(aes(x=year, y=label, fill=emigrants)) +
+  geom_tile() +
+  scale_x_continuous(breaks = seq(2009, 2019, 2), limits = c(2008,2020),
+                     expand = c(0,0)) +
+  scale_fill_gradient(low = '#FFFFFF', high = '#FF0000', limits=c(0,NA),
+                      name = "New residents\nfrom Hawai'i") +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = glue("Between {year_range}, {peak_state} recieved the highest\namount of dispelled Hawai'i residents"),
+    caption = "Data provided by the US Census"
+  ) +
+  theme_classic() +
+  theme(
+    axis.line = element_blank(),
+    axis.text = element_text(size=12),
+    axis.ticks = element_blank(),
+    plot.title = element_text(size=20, face='bold',
+                              margin = margin(t=5,0,b=10,0)),
+    plot.title.position = 'plot',
+    plot.caption.position = 'plot',
+    plot.caption = element_text(face='italic')
+  )
+ggsave('figures/emigration_heatmap.png')
+# this heat map is kind of ruined by CA having such high numbers
+
+no_cali %>%
+  left_join(., overall_no_cali, by = 'state') %>%
+  left_join(., state_totals, by = 'state') %>%
+  drop_na() %>%
+  ggplot(aes(x=year, y=label, fill=emigrants)) +
+  geom_tile(position = 'identity') +
+  scale_x_continuous(breaks = seq(2009, 2019, 2), limits = c(2008,2020),
+                     expand = c(0,0)) +
+  scale_fill_gradient(low = '#FFFFFF', high = '#FF0000', limits=c(0,NA),
+                      name = "New residents\nfrom Hawai'i") +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = glue("Between {year_range}, {peak_no_cali} recieved the most dispelled 
+                 Hawai'i residents after {peak_state}"),
+    caption = "Data provided by the US Census"
+  ) +
+  theme_classic() +
+  theme(
+    axis.line = element_blank(),
+    axis.text = element_text(size=12),
+    axis.ticks = element_blank(),
+    plot.title = element_text(size=20, face='bold',
+                                        margin = margin(t=5,0,b=10,0)),
+    plot.title.position = 'plot',
+    plot.caption.position = 'plot',
+    plot.caption = element_text(face='italic')
+  )
+ggsave('figures/emigration_heatmap_2', width = 5, height = 6)
+
+state.name[no_cali$abb]
+names(no_cali$abb)
+names(state.abb) <- state.name   
+# both are in-built values in the `state`-item of default `datasets` package
+?state     # also See: ?Constants and ?data
+no_cali$state <- state.name[no_cali$abb]
+
+
 ## Formatting long data fro future plots
 diaspora_data %>%
   rename(state = `State:`) %>%
   pivot_longer(cols = 2:12, names_to = 'year', values_to = 'emigrants') %>%
   mutate(year = as.numeric(year)) %>%
   drop_na()
+
+
+
