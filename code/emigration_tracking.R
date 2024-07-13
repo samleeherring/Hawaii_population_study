@@ -215,8 +215,9 @@ destinations <- diaspora_data %>%
   arrange(-emigrants, .by_group = TRUE)
 
 ## Also making a df for overall numbers
-diaspora_data %>%
-  mutate(total=rowSums(.))
+over_time <- diaspora_data %>%
+  mutate(total = rowSums(across(where(is.numeric)))) %>%
+  select(state, abb, total)
 
 
 ## Looking closer at the top 10 destinations
