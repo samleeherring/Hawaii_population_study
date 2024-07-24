@@ -358,4 +358,38 @@ diaspora_data %>%
   drop_na()
 
 
-
+## Creating a boxplot showing distribution of HI residents to top 5 states
+no_cali %>%
+  slice_max(n=10, order_by = emigrants) %>% #sliced for top 3 to see top 5 states
+  #ungroup() %>%
+  mutate(state = factor(state, levels=c('Nevada','Oregon', 'Texas','Virginia',
+                                        'Washington'))) %>%
+  drop_na() %>% #only looking at states in factor
+  ggplot(aes(x=state, y=emigrants, fill=abb)) +
+  #geom_boxplot(show.legend = FALSE, alpha=0.6, outlier.shape=NA, width=0.6) +
+  geom_jitter(show.legend = FALSE, shape=21, width = 0.25) +
+  stat_summary(fun.data = median_hilow, fun.args=0.5, show.legend = FALSE,
+               geom='crossbar', color='black', width=0.6, size=0.5, alpha=0.6) +
+  scale_y_continuous(breaks = seq(2000, 8000, 1000), labels=c('2k', '3k', '4k', '5k',
+                                                              '6k', '7k', '8k')) +
+  
+  labs(
+    x=NULL,
+    y="New residents arriving from Hawai'i",
+    title="Where are Hawai'i residents going?",
+    subtitle='Distribution among the top 5 states, excluding CA (which is #1)',
+    caption = "Data provided by the US Census"
+  ) +
+  
+  theme_classic() +
+  theme(
+    plot.title = element_textbox_simple(size=30, family='patua-one', face='bold',
+                                        margin = margin(t=5,0,b=7,0), lineheight = 0.75),
+    plot.title.position = 'panel',
+    plot.subtitle = element_text(size=18),
+    plot.caption.position = 'panel',
+    plot.caption = element_text(face='italic'),
+    plot.margin = margin(t=0,r=5,b=0,l=10),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size=12)
+  )
