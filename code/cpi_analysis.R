@@ -63,9 +63,19 @@ cost_of_living <- cpi %>%
   select(year, avgs) +
   pivot_longer(cols = 2, names_to = 'cpi', values_to = 'value')
   
-cpi_plot +
-  geom_smooth(mapping = aes(x=year, y=avgs, color='lightgrey'), data = cost_of_living, show.legend = FALSE)
+## Researched funtions for inseting layers beneath existing plot, krassowski
+`-.gg` <- function(plot, layer) {
+  if (missing(layer)) {
+    stop("Cannot use `-.gg()` with a single argument. Did you accidentally put 
+         - on a new line?")
+  }
+  if (!is.ggplot(plot)) {
+    stop('Need a plot on the left side')
+  }
+  plot$layers = c(layer, plot$layers)
+  plot
+}
 
-
-
-
+cpi_plot -
+  geom_smooth(data = cost_of_living, name = NULL, aes(x=year, y=avgs, color=NA, linewidth=NA),
+              show.legend = FALSE, inherit.aes = FALSE, position=position_dodge2())
