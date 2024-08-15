@@ -120,28 +120,28 @@ res_v_tourist <- raw_data %>%
   rename(residents = 'Total Resident Population',
          visitors = 'Visitor arrivals, Total (air + cruise ship)')
 
-res_v_trst <- res_v_tourist %>%
+res_v_trst <- res_v_tourist %>% 
   pivot_longer(cols=2:3, names_to = 'populations', values_to = 'amounts') %>%
   
   ggplot(aes(x=year, y=amounts, group=populations, color=populations)) +
-  geom_point(size=1) +
-  geom_line(linewidth=0.75) +
+  geom_point(size=1.5) +
+  geom_line(linewidth=0.85) +
   geom_vline(xintercept = c(2001,2009,2020), color = 'black', linetype = 'dashed',
              linewidth = 0.4) +
-  scale_y_continuous(breaks = seq(1200000, 11000000, 800000), labels = seq(120, 1100, 80),
+  scale_y_continuous(breaks = seq(1200000, 11000000, 800000), labels = seq(1.2, 11.0, 0.8),
                      limits = c(1200000, 10600000)) +
   scale_x_continuous(breaks = seq(1999, 2023, 3), expand = c(0.01,0.01), limits = c(1998, 2024)) +
   scale_color_manual(name = 'Population type:',
                      values=c("pink", "skyblue"),
                      labels=c("Residents", "Tourists")) +
   labs(
-    title = "Resident vs Tourist population of state of Hawai'i (1999-2023)",
+    title = "Resident vs Tourist population of Hawai'i (1999-2023)",
     subtitle = "Based on data from the Hawai'i State Dep Tourism & US Census",
     x = NULL,
-    y = 'Populations (x100,000)'
+    y = 'Populations (millions)'
   ) +
   theme(
-    plot.title = element_textbox_simple(margin = margin(b=10)),
+    plot.title = element_textbox_simple(size = 13, margin = margin(b=10)),
     plot.subtitle = element_text(color = 'darkgrey', size = 10),
     panel.background = element_rect(fill = '#f6f6f6'),
     legend.background = element_rect(fill = "white"),
